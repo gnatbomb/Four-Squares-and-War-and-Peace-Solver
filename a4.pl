@@ -62,16 +62,36 @@ fourSquaresHelper(N, OutList) :-
     N is (S1^2 + S2^2 + S3^2 + S4^2),
     msort([S1, S2, S3, S4], OutList).
 
+
+/*
+putFirst([First], L)
+*/
+putFirst([First], L) :-
+    L = First.
+
+
 /*
 returnValues(Values, L)
 returns the values for L one by one.
 */
+returnValues([First|_], L) :-
+    L = First.
 
 returnValues([_|Rest], L) :-
     returnValues(Rest, L).
 
-returnValues([First|_], L) :-
-    L = First.
+
+/*
+makeCall(List, L)
+prints a single value if List only has one member, or all values if List has multiple.
+*/
+makeCall(List, L) :-
+    length(List, 1),
+    !,
+    putFirst(List, L).
+
+makeCall(List, L) :-
+    returnValues(List, L).
 
 /*
 fourSquares(N, L)
@@ -81,7 +101,7 @@ finds all appropriate values for the 4 numbers, then removes all duplicate sets 
 fourSquares(N, L) :-
     findall(X, fourSquaresHelper(N, X), OutList),
     sort(OutList, NoDupeList),
-    returnValues(NoDupeList, L).
+    makeCall(NoDupeList, L).
     
 
 
