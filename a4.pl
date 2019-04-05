@@ -118,120 +118,196 @@ sumList(L, Sumsofar, Sum)
 returns the total sum of L in Sum
 */
 
-sumList([], SumSoFar, SumSoFar).
 
-sumList([First|Rest], SumSoFar, Sum) :-
-    SumPlus is SumSoFar + First,
-    sumList(Rest, SumPlus, Sum).
+
 
 /*
 getDisarm(Single, List, StepSolSoFar, StepSol)
 Given Single, tries to find two members of List which equal Single. Returns them in StepSol
 given
 */ 
-getDisarm(Single, _, StepSolSoFar, StepSolSoFar) :-
-    length(StepSolSoFar, X),
-    X >= 2,
-    Single == 0.
+%use_module(library(clpfd)).
 
-getDisarm(Single, [First|Rest], StepSolSoFar, StepSol) :-
-    length(StepSolSoFar, X),
-    X < 2,
-    NewSingle is Single - First,
-    NewSingle >= 0,
-    append(StepSolSoFar, [First], NewSolSoFar),
-    getDisarm(NewSingle, Rest, NewSolSoFar, StepSol).
 
-getDisarm(Single, [_|Rest], StepSolSoFar, StepSol) :-
-    length(StepSolSoFar, X),
-    X < 2,
-    getDisarm(Single, Rest, StepSolSoFar, StepSol).
+%SumList returns the sum of the values in a list
+sumList([], SumSoFar, SumSoFar).
 
-/*
-singleDisarm(A, B, SolutionSoFar)
-A disarms one step, B disarms 2.
-*/
-singleDisarm([AFirst|_], [BFirst|BRest], PrevDisarm, StepSol) :-
-    PrevDisarm =< AFirst,
-    getDisarm(AFirst, [BFirst|BRest], [], SolNoFirst),
-    append([[AFirst]], [SolNoFirst], StepSol).
+sumList([First|Rest], SumSoFar, Sum) :-
+    SumPlus is SumSoFar + First,
+    sumList(Rest, SumPlus, Sum).
 
-singleDisarm([AFirst|ARest], [BFirst|_], PrevDisarm, StepSol) :-
-    PrevDisarm =< BFirst,
-    getDisarm(BFirst, [AFirst|ARest], [], SolNoSecond),
-    append([SolNoSecond], [[BFirst]], StepSol).
 
-singleDisarm([_|ARest], B, PrevDisarm, StepSol) :-
-    singleDisarm(ARest, B, PrevDisarm, StepSol).
+%equalSumList returns true if A and B have the same sum of parts.
+equalSumList(A, B) :-
+    sumList(A, 0, Asum),
+    sumList(B, 0, Bsum),
+    Bsum is Asum.
 
-singleDisarm(A, [_|BRest], PrevDisarm, StepSol) :-
-    singleDisarm(A, BRest, PrevDisarm, StepSol).
 
-    
-/*
-RefreshList([OldFirst|OldRest], RemovedValue, NewListSoFar, NewList)
-*/
-refreshList([OldFirst|OldRest], RemovedValue, NewListSoFar, NewList) :-
-    OldFirst == RemovedValue,
-    append(NewListSoFar, OldRest, NewList).
-
-refreshList([OldFirst|OldRest], RemovedValue, NewListSoFar, NewList) :-
-    OldFirst \== RemovedValue,
-    append(NewListSoFar, [OldFirst], NewSoFar),
-    refreshList(OldRest, RemovedValue, NewSoFar, NewList).
+%getSumList calls sumList on the first of two elements.
+getSumList([L|_], Sum) :-
+    sumList(L, 0, Sum).
 
 /*
-refreshCall
-*/
-refreshCall(A, A, []).
+disarm(A, B, Solution)
+begins by checking if a solution is impossible,
+    first checks if length of A + B is a multiple of 1.5,
+    then checks that A and B have the same sums,
+After that, it sorts A and B, then strips their values. Stripping takes all n instances of integer x and puts it into a list
+as [[x, n]] to keep track of how many x's we have. This helps reduce pointless backtracking.
+Lastly, we get a solution with disarmer, and reverse the order of the solution.
 
-refreshCall(A, NewA, [First|Rest]) :-
-    refreshList(A, First, [], MiniNew),
-    refreshCall(MiniNew, NewA, Rest).
-
-/*
-RefreshLists
-*/
-refreshLists(A, NewA, B, NewB, [AVals, BVals]) :-
-    refreshCall(A, NewA, AVals),
-    refreshCall(B, NewB, BVals).
-
-/*
-getDisarm
-*/
-getDisarm([First|_], Value) :-
-    sumList(First, 0, Value).
-
-/*
-disarmHelper(A, B, SolutionSoFar, Solution)
-*/
-disarmHelper([], [], _, SolutionSoFar, SolutionSoFar).
-
-disarmHelper(A, B, PrevDisarm, SolutionSoFar, Solution) :-
-    singleDisarm(A, B, PrevDisarm, Step),
-    refreshLists(A, NewA, B, NewB, Step),
-    getDisarm(Step, NewDisarm),
-    append(SolutionSoFar, [Step], NewSolutionSoFar),
-    disarmHelper(NewA, NewB, NewDisarm, NewSolutionSoFar, Solution).
-
-disarmHelper([FirstA|RestA], B, PrevDisarm, SolutionSoFar, Solution) :-
-    singleDisarm(RestA, B, PrevDisarm, Step),
-    refreshLists(RestA, NewA, B, NewB, Step),
-    getDisarm(Step, NewDisarm),
-    append(SolutionSoFar, [Step], NewSolutionSoFar),
-    disarmHelper([FirstA|NewA], NewB, NewDisarm, NewSolutionSoFar, Solution).
-
-disarmHelper(A, [FirstB|RestB], PrevDisarm, SolutionSoFar, Solution) :-
-    singleDisarm(A, RestB, PrevDisarm, Step),
-    refreshLists(A, NewA, RestB, NewB, Step),
-    getDisarm(Step, NewDisarm),
-    append(SolutionSoFar, [Step], NewSolutionSoFar),
-    disarmHelper(NewA, [FirstB|NewB], NewDisarm, NewSolutionSoFar, Solution).
-
-/*
-disarm
+I was able to save a lot of backtracking by always using the largest value left in B and A as my "disarmament goal".
+This is because as the largest number, backtracking has fewer options higher in the tree, which means exponentially
+fewer backtracking checks further down the tree.
 */
 disarm(A, B, Solution) :-
-    msort(A, SortedA),
-    msort(B, SortedB),
-    disarmHelper(SortedA, SortedB, 0, [], Solution).
+    length(A, X),
+    length(B, Y),
+    Z is (X + Y) / 1.5,
+    R is round(Z),
+    F is float(R),
+    Z is F,
+    msort(A, SA),
+    msort(B, SB),
+    equalSumList(A, B),
+    stripValues(SA, [], StrippedA),
+    stripValues(SB, [], StrippedB),
+    disarmer(StrippedA, StrippedB, [], Sol),
+    flipSol(Sol, [], Solution).
+
+
+%flipSol flips the solution list that I ended up with.
+flipSol([], S, S).
+
+flipSol([F|R], SF, Sol) :-
+    append([F], SF, NF),
+    flipSol(R, NF, Sol).
+
+
+%firstPair returns the Value of the first pair of armaments
+firstPair([V|_], V).
+
+
+%getCount returns how many of the specified armaments there are.
+getCount([_,C],C).
+
+/*
+List Stripping functions
+*/
+stripV(F, [], PopList, NewL) :-
+    append([[F, 1]], PopList, NewL).
+
+stripV(F, [First|Rest], PopList, NewL) :-
+    firstPair(First, F),
+    getCount(First, N),
+    M is N+1,
+    append(PopList, [[F, M]], NPopList),
+    append(NPopList, Rest, NewL).
+
+stripV(F, [First|Rest], PopList, NewL) :-
+    not(firstPair(First, F)),
+    append(PopList, [First], NPopList),
+    stripV(F, Rest, NPopList, NewL).
+
+
+stripValue(F, MidL, NewL) :-
+    stripV(F, MidL, [], NewL).
+
+stripValues([], M, M).
+
+stripValues([F|R], MidL, StrippedL) :-
+    stripValue(F, MidL, Strip),
+    stripValues(R, Strip, StrippedL).
+
+%agreater returns true if the first element of A is greater than the first element of B.
+agreater([[FA|_]|_],[[FB|_]|_]) :-
+    FA > FB.
+
+/*
+disarmer
+*/
+%main loop: base case. Cuts after finding a solution.
+disarmer([], [], L, L) :- !.
+
+%main loop: case A > B. Gets the pairing using the first element of A as the disarmament quota.
+disarmer(A, B, Lsf, L) :-
+    agreater(A, B),
+    getPairing(A, B, GP, NewA, NewB),
+    noflip(GP, P),
+    append(Lsf, [P], NLsf),
+    disarmer(NewA, NewB, NLsf, L).
+
+%main loop: case A <= B. Gets the pairing using the first element of B as the disarmament quota.
+disarmer(A, B, Lsf, L) :-
+    not(agreater(A, B)),
+    getPairing(B, A, RevL, NewB, NewA),
+    flip(RevL, P),
+    append(Lsf, [P], NLsf),
+    disarmer(NewA, NewB, NLsf, L).
+
+%flip: helper function which puts brackets in the right places and fixes the order of the pairs.
+flip([F|R], L) :-
+    append([R], [[F]], L).
+
+%noflip: helper function which puts brackets in the right places.
+noflip([F|R], L) :-
+    append([[F]], [R], L).
+
+
+/*
+getPairing(One, Two, P, NewOne, NewTwo)
+One: the list we will take the quota from. Two: the list we will disarm two battlements. P : the pair of quota + battlements being disarmed.
+NewOne: The new armament inventory for the first group.
+NewTwo: Then new armament inventory for the second group.
+*/
+getPairing(One, Two, P, NewOne, NewTwo) :-
+    getFirst(One, OneV, _),
+    getPair(Two, OneV, [], 0, Pair, NewTwo),
+    append([OneV], Pair, P),
+    subtractOne(One, NewOne).
+
+
+%bookkeeping function: decrements the specified battlement inventory by one. Then calls keepOrTrash.
+subtractOne([F|Rest], NewOne) :-
+    getFirs(F, V, C),
+    Nc is C - 1,
+    keepOrTrash(V, Nc, Rest, NewOne).
+
+%keepOrTrash: adds the new values to the list. If there are no more of the specified battlement size, removes that from the list.
+keepOrTrash(_, 0, Rest, Rest).
+
+keepOrTrash(V, C, Rest, NewOne) :-
+    C > 0,
+    append([[V, C]], Rest, NewOne).
+
+
+/*
+getPair(Two, Quota, PairSoFar, PairCount, Pair, NewTwo)
+Two: the list we are disarming two battlements from. Quota: the amount of military power we are disarming this month.
+PairSoFar: what we have disarmed from Two. PairCount: how many battlements from two we have disarmed.
+NewTwo: the new inventory count for Two.
+*/
+%base case: the quota has been met (= 0), and we have dismantled two battlements.
+getPair(Two, 0, P, 2, P, Two).
+
+%main loop: first value is < the quota. Removes the battlement and recurses.
+getPair([F|R], Quota, PairSoFar, PairCount, Pair, NewTwo) :-
+    getFirs(F, V, _),
+    V =< Quota,
+    Nq is Quota - V,
+    subtractOne([F|R], NT),
+    append([V], PairSoFar, Npsf),
+    Npc is PairCount + 1,
+    getPair(NT, Nq, Npsf, Npc, Pair, NewTwo).
+
+%main loop: first value is > the quota. Continues with the next smallest battlements.
+getPair([F|R], Quota, PairSoFar, PairCount, Pair, NewTwo) :-
+    getPair(R, Quota, PairSoFar, PairCount, Pair, NT),
+    append([F], NT, NewTwo).
+
+%helper function for getting values from the inventory.
+getFirst([[FA, RA]|_], FA, RA).
+
+%helper function for getting values from the inventory.
+getFirs([FA, RA], FA, RA).
