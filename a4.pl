@@ -67,11 +67,11 @@ returnValues(Values, L)
 returns the values for L one by one.
 */
 
-returnValues([First|_], L) :-
-    L = First.
-
 returnValues([_|Rest], L) :-
     returnValues(Rest, L).
+
+returnValues([First|_], L) :-
+    L = First.
 
 /*
 fourSquares(N, L)
