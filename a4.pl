@@ -104,6 +104,134 @@ fourSquares(N, L) :-
     makeCall(NoDupeList, L).
     
 
+/*
+Question 2 - War and Peace
+write disarm(A, B, Solution)
+Where A and B are lists of integers,
+and Solution is the order which A and B should remove one or two values such that their totals remain the same.
 
+Each step must dismantle more than or as much as the previous step's dismantlement.
+*/
 
+/*
+sumList(L, Sumsofar, Sum)
+returns the total sum of L in Sum
+*/
 
+sumList([], SumSoFar, SumSoFar).
+
+sumList([First|Rest], SumSoFar, Sum) :-
+    SumPlus is SumSoFar + First,
+    sumList(Rest, SumPlus, Sum).
+
+/*
+getDisarm(Single, List, StepSolSoFar, StepSol)
+Given Single, tries to find two members of List which equal Single. Returns them in StepSol
+given
+*/ 
+getDisarm(Single, _, StepSolSoFar, StepSolSoFar) :-
+    length(StepSolSoFar, X),
+    X >= 2,
+    Single == 0.
+
+getDisarm(Single, [First|Rest], StepSolSoFar, StepSol) :-
+    length(StepSolSoFar, X),
+    X < 2,
+    NewSingle is Single - First,
+    NewSingle >= 0,
+    append(StepSolSoFar, [First], NewSolSoFar),
+    getDisarm(NewSingle, Rest, NewSolSoFar, StepSol).
+
+getDisarm(Single, [_|Rest], StepSolSoFar, StepSol) :-
+    length(StepSolSoFar, X),
+    X < 2,
+    getDisarm(Single, Rest, StepSolSoFar, StepSol).
+
+/*
+singleDisarm(A, B, SolutionSoFar)
+A disarms one step, B disarms 2.
+*/
+singleDisarm([AFirst|_], [BFirst|BRest], PrevDisarm, StepSol) :-
+    PrevDisarm =< AFirst,
+    getDisarm(AFirst, [BFirst|BRest], [], SolNoFirst),
+    append([[AFirst]], [SolNoFirst], StepSol).
+
+singleDisarm([AFirst|ARest], [BFirst|_], PrevDisarm, StepSol) :-
+    PrevDisarm =< BFirst,
+    getDisarm(BFirst, [AFirst|ARest], [], SolNoSecond),
+    append([SolNoSecond], [[BFirst]], StepSol).
+
+singleDisarm([_|ARest], B, PrevDisarm, StepSol) :-
+    singleDisarm(ARest, B, PrevDisarm, StepSol).
+
+singleDisarm(A, [_|BRest], PrevDisarm, StepSol) :-
+    singleDisarm(A, BRest, PrevDisarm, StepSol).
+
+    
+/*
+RefreshList([OldFirst|OldRest], RemovedValue, NewListSoFar, NewList)
+*/
+refreshList([OldFirst|OldRest], RemovedValue, NewListSoFar, NewList) :-
+    OldFirst == RemovedValue,
+    append(NewListSoFar, OldRest, NewList).
+
+refreshList([OldFirst|OldRest], RemovedValue, NewListSoFar, NewList) :-
+    OldFirst \== RemovedValue,
+    append(NewListSoFar, [OldFirst], NewSoFar),
+    refreshList(OldRest, RemovedValue, NewSoFar, NewList).
+
+/*
+refreshCall
+*/
+refreshCall(A, A, []).
+
+refreshCall(A, NewA, [First|Rest]) :-
+    refreshList(A, First, [], MiniNew),
+    refreshCall(MiniNew, NewA, Rest).
+
+/*
+RefreshLists
+*/
+refreshLists(A, NewA, B, NewB, [AVals, BVals]) :-
+    refreshCall(A, NewA, AVals),
+    refreshCall(B, NewB, BVals).
+
+/*
+getDisarm
+*/
+getDisarm([First|_], Value) :-
+    sumList(First, 0, Value).
+
+/*
+disarmHelper(A, B, SolutionSoFar, Solution)
+*/
+disarmHelper([], [], _, SolutionSoFar, SolutionSoFar).
+
+disarmHelper(A, B, PrevDisarm, SolutionSoFar, Solution) :-
+    singleDisarm(A, B, PrevDisarm, Step),
+    refreshLists(A, NewA, B, NewB, Step),
+    getDisarm(Step, NewDisarm),
+    append(SolutionSoFar, [Step], NewSolutionSoFar),
+    disarmHelper(NewA, NewB, NewDisarm, NewSolutionSoFar, Solution).
+
+disarmHelper([FirstA|RestA], B, PrevDisarm, SolutionSoFar, Solution) :-
+    singleDisarm(RestA, B, PrevDisarm, Step),
+    refreshLists(RestA, NewA, B, NewB, Step),
+    getDisarm(Step, NewDisarm),
+    append(SolutionSoFar, [Step], NewSolutionSoFar),
+    disarmHelper([FirstA|NewA], NewB, NewDisarm, NewSolutionSoFar, Solution).
+
+disarmHelper(A, [FirstB|RestB], PrevDisarm, SolutionSoFar, Solution) :-
+    singleDisarm(A, RestB, PrevDisarm, Step),
+    refreshLists(A, NewA, RestB, NewB, Step),
+    getDisarm(Step, NewDisarm),
+    append(SolutionSoFar, [Step], NewSolutionSoFar),
+    disarmHelper(NewA, [FirstB|NewB], NewDisarm, NewSolutionSoFar, Solution).
+
+/*
+disarm
+*/
+disarm(A, B, Solution) :-
+    msort(A, SortedA),
+    msort(B, SortedB),
+    disarmHelper(SortedA, SortedB, 0, [], Solution).
