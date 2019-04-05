@@ -12,10 +12,12 @@ Count(N, M, X)
 If N =< M, returns N, or increments N and repeats
 */
 
+%Return first N
 count(N, M, X) :- 
     N =< M,
     X is N.
 
+%Callback on N+1
 count(N, M, X) :-
     N =< M,
     count(N+1, M, X).
@@ -46,7 +48,7 @@ getMaxSquare(N, M)
 Returns M as the rounded square root of N. This helps cut down search time.
 */
 getMaxSquare(N, M) :-
-    Root is sqrt(N),
+    Root is sqrt(N) + 1,
     M is round(Root).
 
 
@@ -71,17 +73,15 @@ returnValues([First|_], L) :-
 returnValues([_|Rest], L) :-
     returnValues(Rest, L).
 
-
-
 /*
 fourSquares(N, L)
 finds all appropriate values for the 4 numbers, then removes all duplicate sets by using sort, then calls returnValues to return the values one by one.
 */
+
 fourSquares(N, L) :-
     findall(X, fourSquaresHelper(N, X), OutList),
     sort(OutList, NoDupeList),
     returnValues(NoDupeList, L).
-
     
 
 
