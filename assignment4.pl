@@ -7,105 +7,73 @@ Question 1 - Four Squares
 Given an natural n, return up to 4 square numbers which sum to n.
 */
 
-/*
-Count(N, M, X)
-If N =< M, returns N, or increments N and repeats
-*/
+:- use_module(library(clpfd)).
 
-%Return first N
-count(N, M, X) :- 
-    N =< M,
-    X is N.
-
-%Callback on N+1
-count(N, M, X) :-
-    N =< M,
-    count(N+1, M, X).
-
-
-/*
-getSquares
-fills the values for s1, s2, s3, and s4 one by one.
-*/
-
-getFourthSquare(N, [_, _, _, S4]) :-
-    count(0, N, S4).
-
-getThirdSquare(N, [S1, S2, S3, S4]) :-
-    count(0, N, S3),
-    getFourthSquare(N, [S1, S2, S3, S4]).
-
-getSecondSquare(N, [S1, S2, S3, S4]) :-
-    count(0, N, S2),
-    getThirdSquare(N, [S1, S2, S3, S4]).
-
-getFirstSquare(N, [S1, S2, S3, S4]) :- 
-    count(0, N, S1),
-    getSecondSquare(N, [S1, S2, S3, S4]).
-
-/*
-getMaxSquare(N, M) 
-Returns M as the rounded square root of N. This helps cut down search time.
-*/
-getMaxSquare(N, M) :-
-    Root is sqrt(N) + 1,
-    M is round(Root).
-
-
-/*
-fourSquaresHelper(N, OutList)
-Finds values for S1-S4, then checks if that set is a square set for N. If so, sorts that set and returns it as outList
-*/
-fourSquaresHelper(N, OutList) :- 
-    getMaxSquare(N, M),
-    getFirstSquare(M, [S1, S2, S3, S4]), 
-    N is (S1^2 + S2^2 + S3^2 + S4^2),
-    msort([S1, S2, S3, S4], OutList).
-
-
-/*
-putFirst([First], L)
-*/
-putFirst([First], L) :-
-    L = First.
-
-
-/*
-returnValues(Values, L)
-returns the values for L one by one.
-*/
-returnValues([First|_], L) :-
-    L = First.
-
-returnValues([_|Rest], L) :-
-    returnValues(Rest, L).
-
-
-/*
-makeCall(List, L)
-prints a single value if List only has one member, or all values if List has multiple.
-*/
-makeCall(List, L) :-
-    length(List, 1),
-    !,
-    putFirst(List, L).
-
-makeCall(List, L) :-
-    returnValues(List, L).
-
-/*
-fourSquares(N, L)
-finds all appropriate values for the 4 numbers, then removes all duplicate sets by using sort, then calls returnValues to return the values one by one.
-*/
-
+%Base call: calls the solver and value printer.
 fourSquares(N, L) :-
-    findall(X, fourSquaresHelper(N, X), OutList),
-    sort(OutList, NoDupeList),
-    makeCall(NoDupeList, L).
-    
+    fourSquarer(N, L),
+    labeling([ff], L).
+
+
+/*
+fourSquarer(N, L)
+Sets M as the square root of N.
+Sets the size of L as 4.
+Sets the range of elements in L between 0 and M.
+Calls isRoot(L, N).
+
+This function sets up the problem domain, then calls the checker.
+*/
+fourSquarer(N, L) :-
+    F is sqrt(N),
+    M is integer(F),
+    length(L, 4),
+    L ins 0..M,
+    isIncreasing(L),
+    isRoot(L, N).
+
+
+/*
+isRoot([F|R], N)
+Calls checker to ensure that values are sorted small to large.
+Defines that the squared values in L must sum to N.
+Calls itself recursively.
+
+isRoot 
+*/
+%base case: list is traversed and the values^2 have summed to N
+isRoot([], 0).
+
+%main loop. 
+isRoot([F|R], N) :-
+    NewN #= N - (F^2),
+    isRoot(R, NewN).
+
+newRoot([S1, S2, S3, S4], N) :-
+    N is (S1^2 + S2^2 + S3^2 + S4^2).
+
+
+/*
+isIncreasing([Test|Rest], Value)
+Defines it so that Value is =< the rest of the list, or in other words, the list is sorted.
+*/
+%base case: all values are defined as >= their precursors.
+isIncreasing(_, []).
+
+%main loop: defines that value =< test, then recurses on Rest.
+isIncreasing(Value, [Test|Rest]) :-
+    Value #=< Test,
+    isIncreasing(Test, Rest).
+
+%function caller: calls itself on the first and rest values of the list.
+isIncreasing([F|R]) :-
+    isIncreasing(F, R).
+
+
 
 /*
 Question 2 - War and Peace
+
 write disarm(A, B, Solution)
 Where A and B are lists of integers,
 and Solution is the order which A and B should remove one or two values such that their totals remain the same.
@@ -117,18 +85,6 @@ Each step must dismantle more than or as much as the previous step's dismantleme
 sumList(L, Sumsofar, Sum)
 returns the total sum of L in Sum
 */
-
-
-
-
-/*
-getDisarm(Single, List, StepSolSoFar, StepSol)
-Given Single, tries to find two members of List which equal Single. Returns them in StepSol
-given
-*/ 
-%use_module(library(clpfd)).
-
-
 %SumList returns the sum of the values in a list
 sumList([], SumSoFar, SumSoFar).
 
