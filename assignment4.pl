@@ -20,7 +20,8 @@ fourSquarer(N, L)
 Sets M as the square root of N.
 Sets the size of L as 4.
 Sets the range of elements in L between 0 and M.
-Calls isRoot(L, N).
+Calls isIncreasing to define the list to be increasing.
+Calls sumsToN to define N as all elements of L squared.
 
 This function sets up the problem domain, then calls the checker.
 */
@@ -30,28 +31,11 @@ fourSquarer(N, L) :-
     length(L, 4),
     L ins 0..M,
     isIncreasing(L),
-    isRoot(L, N).
+    sumsToN(L, N).
 
-
-/*
-isRoot([F|R], N)
-Calls checker to ensure that values are sorted small to large.
-Defines that the squared values in L must sum to N.
-Calls itself recursively.
-
-isRoot 
-*/
-%base case: list is traversed and the values^2 have summed to N
-isRoot([], 0).
-
-%main loop. 
-isRoot([F|R], N) :-
-    NewN #= N - (F^2),
-    isRoot(R, NewN).
-
-newRoot([S1, S2, S3, S4], N) :-
-    N is (S1^2 + S2^2 + S3^2 + S4^2).
-
+%Defines N as the sum of all elements of L squared.
+sumsToN([S1, S2, S3, S4], N) :-
+    N #= (S1^2 + S2^2 + S3^2 + S4^2).
 
 /*
 isIncreasing([Test|Rest], Value)
